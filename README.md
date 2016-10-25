@@ -1,12 +1,16 @@
 ### Description
 * This repository contains the replication of Ahn et al. 2016 Frontiers paper.
-* To run, copy the cocaineData_frontiers.txt file (either from Dr. Ahn's website or from Input folder here) to Input folder in the working directory. Install all dependencies (see below) and run main.py in python 3.
+* To run (in python 3):
+	* copy the cocaineData_frontiers.txt file (either from Dr. Ahn's website or from Input folder here) to Input folder in the working directory
+	* make sure that you have all dependencies (see below) installed
+	* change the parameters in globals.py
+	* run main.py
 * There are minor differences in the results caused mainly by two reasons:
 	* sklearn (python) versus glmnet (R) - different libraries for running Logistic Regression with lasso penalty. 
-		* They use slightly different methods to fit the model
-		* Different randomization for cross validation splits generation
-		* The intercept is not regularized in glmnet, but regularized in sklearn.
-		* Performance - Glmnet needs to fit the model nfolds+1 times, does not depend of the number of different values of lambda to be tuned. In contrast sklearn fits the model nfolds+k times, where k=100 is the number of different values of C (proportional to 1/lambda) to be fitted. This results in slow performance of sklearn versus glmnet.  
+		* they use slightly different methods to fit the model
+		* different randomization for cross validation splits generation
+		* the intercept is not regularized in glmnet, but regularized in sklearn.
+		* performance - Glmnet needs to fit the model nfolds+1 times, does not depend of the number of different values of lambda to be tuned. In contrast sklearn fits the model nfolds+k times, where k=100 is the number of different values of C (proportional to 1/lambda) to be fitted. This results in slow performance of sklearn versus glmnet.  
 	* scaling - scaling is done differently in R and python because of using different formulas for standard error (biased vs unbiased estimate of standard deviation)
 
 ### Dependencies
