@@ -32,7 +32,7 @@ CONFIG_test['N_FOLD_SPLITS'] = 100
 CONFIG = CONFIG_normal
 
 # in order to run 'normal', just comment out the following line, do NOT delete it
-CONFIG = CONFIG_test
+# CONFIG = CONFIG_test
 
 # random seeds
 RANDOM_SEED = 2016
