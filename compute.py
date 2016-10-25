@@ -29,7 +29,10 @@ def main_estimation(X, y):
         # split data set into train and test set, exactly replicated the split in the paper
         X_train, X_test, y_train, y_test = create_train_test_split(X, y)
 
-        # run estimation
+        # run estimation on entire data set to reproduce figure 1
+        rep_folds_estimation(X, y)
+
+        # run estimation on train/test split to reproduce figure 2
         rep_folds_estimation(X_train, y_train, X_test, y_test)
 
     elif CONFIG['ESTIMATION_MODE'] != 'single':  # either single or both
@@ -95,9 +98,9 @@ def rep_splits_estimation(X, y):
     print("Finished Estimating Lasso, Elapsed Time %d sec." % (elapsed_time))
 
 
-def rep_folds_estimation(X_train, y_train, X_test, y_test, show=True):
+def rep_folds_estimation(X_train, y_train, X_test=None, y_test=None, show=True):
     """ Estimate Lasso model for N_FOLDS cross-validation splits of train set. Allows to replicate figures 1 and 2 in the
-    paper, is a building block for rep_splits_estimation function
+    paper, is a building block for rep_splits_estimation function. If X_test=None and y_test=None then figure 1 is replicated.
 
     Parameters
     ----------
@@ -109,33 +112,37 @@ def rep_folds_estimation(X_train, y_train, X_test, y_test, show=True):
     y_test: array-like train labels
 
     show: bool
-        If True then replicate figures 1 and 2
+        If True then replicate figures 1 and 2 (figure 1 if X_test=None and y_test=None, figure 2 otherwise)
         If False then is a building block for rep_splits_estimation function, figures 1 and 2 are not reproduced
 
     Return
     ------
 
-    pred_y_train:
-    pred_y_test:
+    pred_y_train: array-like set of train set predictions, None if (X_test = None and y_test = None)
+    pred_y_test: array-like set of test set predictions, None if (X_test = None and y_test = None)
     """
 
     if show:
         print("Estimating Lasso, Single Split of Train and Test Set")
         time_start = time.time()
 
+    # compute and plot betas, as well as calculate test predictions only if the test set is not provided
+    compute_betas = X_test is None
+    assert ((X_test is None) & (y_test is None)) | ((X_test is not None) & (y_test is not None)), \
+        "X_test and y_test must be both either provided or not provided"
+
     # initialize nfold random seeds
     nfolds = CONFIG['N_FOLD_SPLITS']
     random.seed(RANDOM_SEED)
     random_states = [random.randint(RANDOM_SEED_MIN, RANDOM_SEED_MAX) for i in range(nfolds)]
 
-    # initialize betas; auc scores ad predictions for both train and test sets
-    aucs_train, aucs_test = np.zeros([nfolds, 1]), np.zeros([nfolds, 1])
-    preds_y_train, preds_y_test = np.zeros([nfolds, X_train.shape[0]]), np.zeros([nfolds, X_test.shape[0]])
-
-    # create entire data set - for calculating betas
-    if show:
-        X, y = pd.concat((X_train, X_test)), pd.concat((y_train, y_test))
-        betas = np.zeros([nfolds, X.shape[1]])
+    if compute_betas:
+        # initialize betas
+        betas = np.zeros([nfolds, X_train.shape[1]])
+    else:
+        # initialize auc scores and predictions for train and test sets
+        aucs_train, aucs_test = np.zeros([nfolds, 1]), np.zeros([nfolds, 1])
+        preds_y_train, preds_y_test = np.zeros([nfolds, X_train.shape[0]]), np.zeros([nfolds, X_test.shape[0]])
 
     # start progress bar
     if show:
@@ -143,41 +150,41 @@ def rep_folds_estimation(X_train, y_train, X_test, y_test, show=True):
 
     # estimate a model for each random seed - fold split
     for i, rs in enumerate(random_states):
+
         # estimate a model and get betas, auc scores and predictions
-        C, auc_train, auc_test, pred_y_train, pred_y_test = estimation(X_train, y_train, X_test, y_test, rs)
+        beta, auc_train, auc_test, pred_y_train, pred_y_test = estimation(X_train, y_train, X_test, y_test, rs)
 
         # save the results
-        aucs_train[i], aucs_test[i] = auc_train, auc_test
-        preds_y_train[i, :], preds_y_test[i, :] = pred_y_train[:, 1], pred_y_test[:, 1]
-
-        # fit the model on entire data set
-        if show:
-            model = LogisticRegression(penalty='l1', C=C, fit_intercept=True, random_state=RANDOM_SEED)
-            model.fit(X, y)
-            betas[i] = model.coef_
+        if compute_betas:
+            betas[i] = beta
+        else:
+            aucs_train[i], aucs_test[i] = auc_train, auc_test
+            preds_y_train[i, :], preds_y_test[i, :] = pred_y_train[:, 1], pred_y_test[:,1]
 
         # update progress bar
         if show:
             bar.update(i + 1)
 
-    # calculate elapsed time
     if show:
+        # calculate elapsed time
         elapsed_time = time.time() - time_start
 
-    # close progress bar
-    if show:
+        # close progress bar
         bar.finish()
 
-    # plot betas -> figure 1 in the paper
-    if show:
-        plot_betas(betas, X.columns.tolist())
+    if compute_betas:
+        # plot betas -> figure 1 in the paper
+        plot_betas(betas, X_train.columns.tolist())
+        preds_y_train, preds_y_test = None, None
+    else:
+        # calculate mean of predictions
+        preds_y_train, preds_y_test = np.mean(preds_y_train, axis=0), np.mean(preds_y_test, axis=0)
 
-    # calculate mean of predictions
-    preds_y_train, preds_y_test = np.mean(preds_y_train, axis=0), np.mean(preds_y_test, axis=0)
+        # plot roc curves -> figure 2 in the paper
+        if show:
+            plot_roc_curves(y_train, preds_y_train, y_test, preds_y_test)
 
-    # plot roc curves -> figure 2 in the paper
     if show:
-        plot_roc_curves(y_train, preds_y_train, y_test, preds_y_test)
         print("Finished Estimating Lasso, Elapsed Time %d sec." %(elapsed_time))
 
     return preds_y_train, preds_y_test
@@ -195,8 +202,8 @@ def estimation(X_train, y_train, X_test, y_test, rs):
     X_train: array-like train set (features)
     y_train: array-like train labels
 
-    X_test: array-like train set (features)
-    y_test: array-like train labels
+    X_test: array-like train set (features), optional
+    y_test: array-like train labels, optional
 
     rs: int
         Random seed, used to split train set in N_FOLDS folds
@@ -208,11 +215,10 @@ def estimation(X_train, y_train, X_test, y_test, rs):
     C: double, fitted value for parameter C
 
     auc_train: double, auc score on train set
-    auc_test: double, auc score on test set
+    auc_test: double, auc score on test set, None if X_test = None and y_test = None
 
     pred_y_train: array-like list of train set predictions
-    pred_y_test: array-like list of test set predictions
-
+    pred_y_test: array-like list of test set predictions, None if X_test = None and y_test = None
 
     """
 
@@ -226,15 +232,18 @@ def estimation(X_train, y_train, X_test, y_test, rs):
     estimator.set_params(**best_params)
     estimator.fit(X_train, y_train)
 
-    # beta coefficients
-    # beta = estimator.coef_
-
     # auc train score
     pred_y_train = estimator.predict_proba(X_train)
     auc_train = roc_auc_score(y_true=y_train, y_score=pred_y_train[:, 1])
 
-    # auc test score
-    pred_y_test = estimator.predict_proba(X_test)
-    auc_test = roc_auc_score(y_true=y_test, y_score=pred_y_test[:, 1])
+    # beta coefficients
+    beta = estimator.coef_
 
-    return best_params['C'], auc_train, auc_test, pred_y_train, pred_y_test
+    # auc test score
+    if X_test is not None:
+        pred_y_test = estimator.predict_proba(X_test)
+        auc_test = roc_auc_score(y_true=y_test, y_score=pred_y_test[:, 1])
+    else:
+        pred_y_test, auc_test = None, None
+
+    return beta, auc_train, auc_test, pred_y_train, pred_y_test
