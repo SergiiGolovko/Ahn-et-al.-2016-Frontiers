@@ -206,7 +206,7 @@ def estimation(X_train, y_train, X_test, y_test, rs):
     """
 
     # assign estimator to be lasso, set fit_intercept=True
-    estimator = LogisticRegression(penalty='l1', fit_intercept=False, random_state=RANDOM_SEED)
+    estimator = LogisticRegression(penalty='l1', fit_intercept=True, random_state=RANDOM_SEED)
 
     # find the best parameters for lasso, using hyperopt
     best_params = hyperopt_parameters(estimator, X_train, y_train, rs)
@@ -222,7 +222,7 @@ def estimation(X_train, y_train, X_test, y_test, rs):
     pred_y_train = estimator.predict_proba(X_train)
     auc_train = roc_auc_score(y_true=y_train, y_score=pred_y_train[:, 1])
 
-    # auc
+    # auc test score
     pred_y_test = estimator.predict_proba(X_test)
     auc_test = roc_auc_score(y_true=y_test, y_score=pred_y_test[:, 1])
 
