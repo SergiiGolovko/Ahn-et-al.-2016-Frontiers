@@ -6,7 +6,7 @@ CONFIG_normal = {'CONFIG': 'config_normal',
                  'N_FOLD_SPLITS': 1000,
                  'SURVIVAL_RATE_CUTOFF': 0.05,
                  'TEST_SIZE': 0.33,
-                 'ESTIMATION_MODE': 'single'  # if single -> only one train/test split is created
+                 'ESTIMATION_MODE': 'replicate'  # if single -> only one train/test split is created
                                                  # if replicate -> N_REPLICATIONS train/test splits are created
                                                  # if both -> first run single, followed by replicate
                  }
@@ -14,10 +14,10 @@ CONFIG_normal = {'CONFIG': 'config_normal',
 # config test
 CONFIG_test = CONFIG_normal.copy()
 CONFIG_test['CONFIG'] = 'config_test'
-CONFIG_test['N_REPLICATIONS'] = 10
-CONFIG_test['N_FOLD_SPLITS'] = 100
+CONFIG_test['N_REPLICATIONS'] = 1000
+CONFIG_test['N_FOLD_SPLITS'] = 10
 
-# select a configuration to run
+# select a configuration to runААфвашфіва
 CONFIG = CONFIG_normal
 
 # in order to run 'normal', just comment out the following line, do NOT delete it
