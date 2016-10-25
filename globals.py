@@ -12,7 +12,7 @@
 CONFIG_normal = {'CONFIG': 'config_normal',
                  'N_FOLDS': 5,                   # number of folds for each fold split and N_REPLICATIONS to be run
                  'N_REPLICATIONS': 100,          # number of replications, ignored if ESTIMATION_MODE = 'single'
-                 'N_FOLD_SPLITS': 1000,          # number of fold splits
+                 'N_FOLD_SPLITS': 100,           # number of fold splits
                  'SURVIVAL_RATE_CUTOFF': 0.05,   # survival cutoff rate for beta coefficients,
                  'TEST_SIZE': 0.33,              # the percentage of data to be used as a test set, ignored if
                                                  # ESTIMATION_MODE = 'single'
@@ -24,7 +24,7 @@ CONFIG_normal = {'CONFIG': 'config_normal',
 # config test
 CONFIG_test = CONFIG_normal.copy()
 CONFIG_test['CONFIG'] = 'config_test'
-CONFIG_test['ESTIMATION_MODE'] = 'replicate'
+CONFIG_test['ESTIMATION_MODE'] = 'single'
 CONFIG_test['N_REPLICATIONS'] = 10
 CONFIG_test['N_FOLD_SPLITS'] = 10
 
@@ -32,7 +32,7 @@ CONFIG_test['N_FOLD_SPLITS'] = 10
 CONFIG = CONFIG_normal
 
 # in order to run 'normal', just comment out the following line, do NOT delete it
-CONFIG = CONFIG_test
+# CONFIG = CONFIG_test
 
 # random seeds
 RANDOM_SEED = 2016

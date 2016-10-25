@@ -6,6 +6,7 @@ from split_utils import *
 from compute import main_estimation
 import matplotlib.pyplot as plt
 
+
 def main():
 
     # read data from a file

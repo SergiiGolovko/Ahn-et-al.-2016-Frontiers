@@ -129,9 +129,13 @@ def rep_folds_estimation(X_train, y_train, X_test, y_test, show=True):
     random_states = [random.randint(RANDOM_SEED_MIN, RANDOM_SEED_MAX) for i in range(nfolds)]
 
     # initialize betas; auc scores ad predictions for both train and test sets
-    betas = np.zeros([nfolds, X_train.shape[1]])
     aucs_train, aucs_test = np.zeros([nfolds, 1]), np.zeros([nfolds, 1])
     preds_y_train, preds_y_test = np.zeros([nfolds, X_train.shape[0]]), np.zeros([nfolds, X_test.shape[0]])
+
+    # create entire data set - for calculating betas
+    if show:
+        X, y = pd.concat((X_train, X_test)), pd.concat((y_train, y_test))
+        betas = np.zeros([nfolds, X.shape[1]])
 
     # start progress bar
     if show:
@@ -140,11 +144,17 @@ def rep_folds_estimation(X_train, y_train, X_test, y_test, show=True):
     # estimate a model for each random seed - fold split
     for i, rs in enumerate(random_states):
         # estimate a model and get betas, auc scores and predictions
-        beta, auc_train, auc_test, pred_y_train, pred_y_test = estimation(X_train, y_train, X_test, y_test, rs)
+        C, auc_train, auc_test, pred_y_train, pred_y_test = estimation(X_train, y_train, X_test, y_test, rs)
 
         # save the results
-        betas[i, :], aucs_train[i], aucs_test[i] = beta, auc_train, auc_test
+        aucs_train[i], aucs_test[i] = auc_train, auc_test
         preds_y_train[i, :], preds_y_test[i, :] = pred_y_train[:, 1], pred_y_test[:, 1]
+
+        # fit the model on entire data set
+        if show:
+            model = LogisticRegression(penalty='l1', C=C, fit_intercept=True, random_state=RANDOM_SEED)
+            model.fit(X, y)
+            betas[i] = model.coef_
 
         # update progress bar
         if show:
@@ -160,7 +170,7 @@ def rep_folds_estimation(X_train, y_train, X_test, y_test, show=True):
 
     # plot betas -> figure 1 in the paper
     if show:
-        plot_betas(betas, X_train.columns.tolist())
+        plot_betas(betas, X.columns.tolist())
 
     # calculate mean of predictions
     preds_y_train, preds_y_test = np.mean(preds_y_train, axis=0), np.mean(preds_y_test, axis=0)
@@ -194,7 +204,8 @@ def estimation(X_train, y_train, X_test, y_test, rs):
     Return
     ------
 
-    beta: array-like list of beta coefficients
+    # beta: array-like list of beta coefficients
+    C: double, fitted value for parameter C
 
     auc_train: double, auc score on train set
     auc_test: double, auc score on test set
@@ -216,7 +227,7 @@ def estimation(X_train, y_train, X_test, y_test, rs):
     estimator.fit(X_train, y_train)
 
     # beta coefficients
-    beta = estimator.coef_
+    # beta = estimator.coef_
 
     # auc train score
     pred_y_train = estimator.predict_proba(X_train)
@@ -226,4 +237,4 @@ def estimation(X_train, y_train, X_test, y_test, rs):
     pred_y_test = estimator.predict_proba(X_test)
     auc_test = roc_auc_score(y_true=y_test, y_score=pred_y_test[:, 1])
 
-    return beta, auc_train, auc_test, pred_y_train, pred_y_test
+    return best_params['C'], auc_train, auc_test, pred_y_train, pred_y_test
